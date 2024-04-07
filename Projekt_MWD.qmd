@@ -1,0 +1,614 @@
+---
+title: "Największe szczyty świata"
+author: "Artur Kidaj"
+language: polski.yml
+bibliography: references.bib
+format:
+  html:
+    warning: false
+    message: false
+    echo: false
+    self-contained: true
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(gt)
+library(ggplot2)
+library(gridExtra)
+library(plotly)
+library(gtsummary)
+library(rstatix)
+```
+
+```{r}
+page <- "https://en.wikipedia.org/wiki/List_of_highest_mountains_on_Earth"
+
+Rank <- read_html(page) %>% 
+  html_nodes("td:nth-child(1)") %>% 
+  html_text() %>% 
+  parse_number()
+Rank <- Rank[4:123]
+Rank[is.na(Rank)] <- 'S'
+
+HeightM <- read_html(page) %>% 
+  html_nodes("td:nth-child(3)") %>% 
+  html_text() %>%
+  parse_number()
+
+HeightFT <- read_html(page) %>% 
+  html_nodes("td:nth-child(4)") %>% 
+  html_text() %>%
+  parse_number()
+
+ProminenceM <- read_html(page) %>% 
+  html_nodes("td:nth-child(5)") %>% 
+  html_text() %>%
+  parse_number()
+
+ProminenceFT <- read_html(page) %>% 
+  html_nodes("td:nth-child(6)") %>% 
+  html_text() %>%
+  parse_number()
+
+Range <- read_html(page) %>% 
+  html_nodes("td:nth-child(7)") %>% 
+  html_text() %>% 
+  str_extract_all("([^\n]+)") %>% 
+  unlist()
+
+Coordinates <-  read_html(page) %>% 
+  html_nodes("td:nth-child(8)") %>% 
+  html_text() %>% 
+  str_extract("([^/]+)") %>% 
+  unlist() %>% 
+  str_sub(end = -2)
+Coordinates[1] <- "27°59′17″N 86°55′31″E"
+
+Parent <- read_html(page) %>% 
+  html_nodes("td:nth-child(9)") %>% 
+  html_text() %>% 
+  str_extract_all("([^\n]+)") %>% 
+  unlist()
+Parent[1] <- NA
+
+First <- read_html(page) %>% 
+  html_nodes("td:nth-child(10)") %>% 
+  html_text() %>%
+  parse_number() 
+
+Successful <- read_html(page) %>% 
+  html_nodes("td:nth-child(11)") %>% 
+  html_text() %>%
+  parse_number()
+
+Unsuccessful <- read_html(page) %>% 
+  html_nodes("td:nth-child(12)") %>% 
+  html_text() %>%
+  parse_number()
+
+Country <- read_html(page) %>%
+  html_nodes("td:nth-child(13)") %>% 
+  html_text() %>% 
+  str_extract_all("([^\n]+)") %>% 
+  unlist() %>% 
+  str_replace_all("(\\[d?p?\\s?[:digit:]+\\])|(\\')","") %>% 
+  str_extract_all("[A-Z][a-z]+")%>% 
+  str_c(sep="") %>% 
+  str_replace_all("c|\\(|\\)|[:punct:]","") %>% 
+  unlist() %>% 
+  str_replace_all(" ",", ")
+```
+
+```{r}
+
+test  <- read_html(page) %>% 
+  html_nodes("td:nth-child(2)") %>% 
+  html_text() %>% 
+  str_extract_all("([^\n]+)") %>% 
+  unlist() %>% 
+  str_replace_all("\\(|\\)|\\[[:digit:]2\\]","") %>%
+  str_extract_all("[A-Z]([a-z]+|[:digit:]+)") %>% 
+  str_c(sep=" ")
+
+test <- test[2:121]
+test[1] <- "Mount Everest"
+test <- test %>% 
+  str_replace_all("c|\\(|\\)|[:punct:]","")
+
+test <- test %>% 
+  str_extract("\\w+ ?\\w+")
+
+test[7] <- "Dhaulagiri I"
+test[10] <- "Annapurna I"
+test[11] <- "Gasherbrum I"
+test[13] <- "Gasherbrum II"
+test[14] <- "Shishapangma"
+test[16] <- "Gasherbrum III"
+test[17] <- "Annapurna II"
+test[18] <- "Gasherbrum IV"
+test[24] <- "Masherbrum"
+test[32] <- "Dhaulagiri II"
+test[34] <- "Kumbhakarna"
+test[38] <- "Saser Kangri I"
+test[40] <- "Dhaulagiri IV"
+test[42] <- "Dhaulagiri V"
+test[47] <- "Annapurna III"
+test[52] <- "Annapurna IV"
+test[54] <- "Saser Kangri II"
+test[56] <- "Ismoil Somoni Peak"
+test[57] <- "Saser Kangri III"
+test[61] <- "Yukshin Gardan Sar"
+test[62] <- "Teram Kangri I"
+test[69] <- "Yangra"
+test[75] <- "Istor-o-Nal"
+test[78] <- "Rimo I"
+test[80] <- "Teram Kangri III"
+test[88] <- "Jomolhari"
+test[99] <- "K6"
+test[100] <- "Kangpenqing"
+test[103] <- "Dhaulagiri VI"
+test[105] <- "Labuhe Kang III"
+test[109] <- "Rimo III"
+
+Parent[94] <- "Skil Brum"
+Parent[105] <- "Labuche"
+
+Name <- test
+```
+
+```{r}
+Range <- Range %>% 
+  str_replace_all(" ",", ")
+Range[9] <- "Nanga Parbat, Himalaya"
+Range[35] <- "Hindu Kush"
+Range[41] <- "Kongur Shan, Eastern Pamirs"
+Range[45] <-  "Kula Kangri, Himalaya"
+Range[46] <- "Daxue Mountains, Hengduan Shan"
+Range[50] <-  "Kula Kangri, Himalaya"
+Range[51] <- "Kongur Shan, Eastern, Pamirs"
+Range[55] <- "Muztagata, Eastern Pamirs"
+Range[56] <- "Pamir, Academy of Sciences Range"
+Range[58] <- "Hindu Kush"
+Range[66] <- "Tian Shan"
+Range[75] <- "Hindu Kush"
+Range[87] <- "Hindu Kush"
+Range[111] <- "Kula Kangri, Himalaya"               
+
+tabela<- tibble(Rank,Name,HeightM,HeightFT,ProminenceM,ProminenceFT,Range,
+          Coordinates,Parent,First,Successful,Unsuccessful,Country)
+```
+
+## Wstęp
+
+Przeprowadzę analizę na bazie danych zamieszczonej na [@noauthor_list_2023]. Otrzymana baza została zaprezentowana w formie tabeli. Poniżej przedstawiono jej kilka pierwszych wierszy (patrz [@tbl-1]). Tabela ukazuję nazwy oraz dane największych szczytów na Ziemi. Składa się z 120 wierszy i 13 kolumn.
+
+```{r}
+#| label: tbl-1
+#| tbl-cap: Pierwsze szesć wierszy tabeli "List of world's highest peaks"
+gt(head(tabela))
+```
+
+## Analiza parametrów
+
+1.  Rank - informuje o pozycji w rankingu najwyższych szczytów. Znak "S" oznacza, że wierzchołek nie kwalifikuje się jako szczyt wybitny nie jest uwzględniany w pozycjonowaniu.
+
+2.  Name - nazwa omawianego szczytu.
+
+3.  HeightM - wysokość bezwzględna podana w metrach nad poziomem morza w zaokrągleniu z dokładnością do jedności.
+
+4.  HeightFT - wysokość bezwzględna podana w stopach nad poziomem morza w zaokrągleniu z dokładnością do jedności.
+
+5.  ProminenceM - minimalna deniwelacja względna lub wybitność szczytu podana w metrach nad poziomem morza w zaokrągleniu z dokładnością do jedności (patrz [Rysunek @fig-1]). Minimalna wysokość potrzebna do zejścia z danego szczytu przed wejściem na inny wyżej położony teren (więcej informacji [@noauthor_topographic_2022]). Aby szczyt został sklasyfikowany jako wybitny minimalna deniwelacja względna musi osiągnąć umowną wysokość. W tej bazie danych ta wartość wynosi 500.
+
+6.  ProminenceFT - wybitność szczytu podana w stopach nad poziomem morza w zaokrągleniu z dokładnością do jedności.
+
+    [![Wybitność szczytu](Prominence.png){#fig-1}](https://en.wikipedia.org/wiki/Topographic_prominence)
+
+7.  Range - składa się z dwóch członów oddzielonych przecinkiem. Pierwszy informuje o nazwie pasma górskiego (wydzielonej części łańcucha górskiego), drugi o nazwie łańcucha górskiego. W przypadku gdy podana została jedynie jedna nazwa, to dotyczy ona łańcucha górskiego.
+
+8.  Coordinates - współrzędne geograficzne szczytu. Pierwsza została podana szerokość, druga długość. Oznaczenia:
+
+    -   xx° - stopień
+
+    -   yy′ - minuta
+
+    -   zz″ - sekunda
+
+    -   N - północ
+
+    -   E - wschód
+
+9.  Parent - szczyt macierzysty - najwyższy szczyt zlokalizowany na tym samyw wzniesieniu co omawiany szczyt (patrz [Rysunek @fig-1]).
+
+10. First - rok pierwszego zdobycia szczytu. Wartość NA oznacza, że szczyt nie został jeszcze zdobyty.
+
+11. Successful - liczba udanych wypraw na szczyt przed 2004 rokiem. Liczba odnosi się do zarejestrowanych ekspedycji. Indywidualne próby nie zostały uwzględnione. Wartość NA oznacza brak danych.
+
+12. Unsuccessful - liczba nieudanych prób zdobycia szczytu przed 2004 rokiem na tych samych zasadach co udane.
+
+13. Country - kraj lub kraje w których znajduje się dany szczyt.
+
+## Analiza lokalizacji
+
+Analizę zbioru danych rozpocznę od danych związanych z położeniem omawianych gór. Na wykresie [@fig-2] przedstawiłem wykres słupkowy zależności kraju od liczby znajdującym się w nim szczytów.
+
+```{r}
+#| label: fig-2
+#| fig-cap: Liczba szczytów na kraj
+
+test1 <- tabela$Country %>% 
+  str_extract_all("[A-Z][a-z]+") %>% 
+  unlist()
+
+testt1 <- tibble(test1)
+
+
+plot1<- testt1 %>% 
+  count(test1) %>% 
+  mutate(test1 = factor(test1,
+                          levels = fct_reorder(test1,n) %>% levels())) %>%
+  select(Kraj = test1,
+         Ilość = n) %>% 
+  ggplot(aes(x=Kraj,y=Ilość,fill =Kraj))+
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c('#00843D','#EF3340','#FFD100','#FF4E12','#FF8F1C','#003087','#115740','#C8102E'))+
+  theme_light() +
+  theme(legend.position = "none")
+
+ggplotly(plot1)
+```
+
+Jak widać szczyty zlokalizowane są Azji i rozłożone są w 8 państwach. Aż 50 z nich znajduję się w Chinach. Na drugim miejscu uplasował się Pakistan z 42 wierzchołkami a za nim Nepal z 34. Natomiast po jednym szczycie posiadają Afganistan, Kirgistan oraz Pakistan i są to odpowiednio: Noshaq, Jengish Chokusu, Ismoil Somoni Peak Taji.
+
+```{r}
+Subrange <- Range %>% 
+  str_extract("[A-Za-z ]+,") %>% 
+  str_remove(',')
+
+Irange <- Range %>% 
+  str_extract("[A-Za-z ]+$") %>% 
+  str_remove('^ ')
+
+poddtabela <- tabela %>% 
+  mutate(Irange = Range %>% 
+    str_extract("[A-Za-z ]+$") %>% 
+    str_remove('^ ')) %>% 
+  mutate(Subrange = Range %>% 
+    str_extract("[A-Za-z ]+,") %>% 
+    str_remove(',')) %>% 
+  select(Irange,Subrange,Parent)
+
+
+l1 <- c(1,2,3)
+l1[1] <- poddtabela %>% 
+  select(Irange) %>% 
+  unique() %>% 
+  count()
+l1[2] <- poddtabela %>% 
+  select(Subrange) %>% 
+  unique() %>% 
+  count()
+l1[3] <- poddtabela %>% 
+  select(Parent) %>% 
+  unique() %>% 
+  count()
+
+l1 <- l1 %>% 
+  unlist()
+
+l2 <- c(1,2,3)
+l2[1] <- poddtabela %>% 
+  count(Irange) %>% 
+  select(n) %>% 
+  max()
+l2[2] <- poddtabela %>% 
+  count(Subrange) %>% 
+  select(n) %>% 
+  max()
+l2[3] <- poddtabela %>% 
+  count(Parent) %>% 
+  select(n) %>% 
+  max()
+l3 <- c('a','b','c')
+l3[1] <- poddtabela %>% 
+  count(Irange) %>% 
+  arrange(-n) %>% 
+  select(Irange) %>% 
+  head(1)
+l3[2] <- poddtabela %>% 
+  count(Subrange) %>% 
+  arrange(-n) %>% 
+  select(Subrange) %>% 
+  head(1)
+l3[3] <- poddtabela %>% 
+  count(Parent) %>% 
+  arrange(-n) %>% 
+  select(Parent) %>% 
+  head(1)
+
+l3 <- l3 %>% 
+  unlist()
+
+tabela2 <- data.frame(Nazwa=c('Łańcuch górski','Pasmo górskie','Szczyt macierzysty'),
+                      Unikalne=l1,Najwięcej=l2,Najczęściej=l3)
+```
+
+Następnie omówię dane z kolumn 'Range' i 'Parent'. Dla lepszej wizualizacji pierwszy parametr podzieliłem na dwa zbiory. [@tbl-2] składa się z 4 kolumn: nazwy atrybutu, liczby unikalnych wystąpień, największy zbiór unikalnych wystąpień oraz nazwie najczęstszego obiektu.
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: Analiza łańcuchów i pasm górskich oraz szcytów macierzystych
+gt(tabela2) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = "#ffcc99",alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 1
+        )) %>% 
+      tab_style(
+    style = list(
+        cell_fill(color = "#ffff99",alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 2
+        )) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = "lightblue",alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 3
+        ))
+```
+
+## Analiza wysokości
+
+Przed analizą właściwą wszystkich szczytów chciałbym najpierw przyjrzeć się szczytom niewybitnym. Ich dane numeryczne zostały przeanalizowane w [@tbl-3]
+
+```{r}
+#| label: tbl-3
+#| tbl-cap: Parametry niewybitnych szczytów
+tabela %>% 
+  filter(Rank=='S') %>% 
+  select(HeightM,ProminenceM,First,Successful,Unsuccessful) %>% 
+  get_summary_stats(show = c("n","mean", "min","max")) %>% 
+  gt() %>% 
+  fmt_number(columns = mean,rows = 3:5, decimals = 0) %>% 
+  fmt_number(columns = mean,rows = 1:2, decimals = 2) %>% 
+  tab_style(
+    style = list(
+        cell_fill(color = '#ffff99',alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 1
+        )) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = '#ffcc99',alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 2
+        )) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = '#ff9999',alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 3
+        )) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = '#99ff99',alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 4
+        )) %>% 
+    tab_style(
+    style = list(
+        cell_fill(color = '#99ccff',alpha=0.9)
+        ),
+        locations = cells_body(
+        rows = 5
+        )) %>% 
+  cols_label(n="Ilość",mean="Średnia",min='Min',max="Max",variable="Nazwa")
+```
+
+W bazie danych znajduje się 12 niewybitnych szczytów. Ich wybitność z definicji jest niska i osiąga wartości z przedziału od 217 metrów do 288 metrów. Jednak wybitność nie wpływa na samą wysokość tych szczytów, gdyż ich średnia wielkość klasyfikowała by ich w połowie stawki wszystkich gór. Natomiast nie są one popularne wśród taterników. Jedynym wyjątkiem jest Annapurna IV z 43 udanymi i 18 nieudanymi ekspedycjami.
+
+Uwzględniając już wszystkie szczyty przedstawiłem wykres słupkowy prezentujący najwyższe wartości wybitności szczytów z podziałem na łańcuchy górskie (patrz [@fig-3]).
+
+```{r}
+#| label: fig-3
+#| fig-cap: Szczyty o największej wybitności 
+px <- tabela %>% 
+  mutate(Irange = Range %>% 
+  str_extract("[A-Za-z ]+$") %>% 
+  str_remove('^ ')) %>% 
+  arrange(-ProminenceM) %>% 
+  head(15) %>% 
+    select(
+    Nazwa=Name,
+    Wybitność=ProminenceM,
+    `Łańcuch Górski`=Irange
+  ) %>% 
+  mutate(Nazwa = factor(Nazwa,
+                        levels = fct_reorder(Nazwa,Wybitność) %>% levels())) %>%
+  ggplot(aes(y=Nazwa,x=Wybitność,fill=`Łańcuch Górski`))+
+  geom_bar(stat = 'identity') + 
+  theme_light()
+
+
+ggplotly(px,tooltip = c("Łańcuch Górski","Wybitność")) %>% 
+  layout(yaxis = list(title = list(standoff = 15L)))
+```
+
+Sczytem o najwyższej wybitności jest oczywiście Mount Everest. Jako najwyższa góra na Ziemi jej wysokość jest równa jej wybitności. Następnie znajduję się 4000 metrowy przeskok, po czym spadek tej wartości się stabilizuje. Najwięcej szczytów na wykresie znajduje się w Himalajach. Pozostałe łańcuchy zawierają po jednym szczycie.
+
+Poniżej przedstawiłem tabelę [@tbl-4] szczytów o największej różnicy wysokości i wybitności. Oprócz omawianej wartości zawiera ona nazwę szczytu jak i samą wysokość i wybitność. Dodatkowo w tabeli zostały zaznaczone szczyty niewybitne.
+
+```{r}
+#| label: tbl-4
+#| tbl-cap: Szczyty o największej różnicy wysokości i wybitności
+tabela1 <- tabela %>% 
+  select(Nazwa=Name,Wysokość=HeightM,Wybitność=ProminenceM) %>% 
+  mutate(Różnica=HeightM-Wybitność) %>% 
+  arrange(-Różnica) %>% 
+  head(10) %>% 
+  gt() %>% 
+  data_color(
+    columns = Wysokość,
+    colors = c('lightgreen','green'),
+    alpha = 0.8) %>%
+  tab_style(
+        style = list(
+          cell_fill(color = "#99ccff",alpha=0.8)
+        ),
+        locations = cells_body(
+          columns = Wybitność,
+          rows = Wybitność >= 500
+        )) %>% 
+    tab_style(
+        style = list(
+          cell_fill(color = "#1a75ff",alpha=0.8)
+        ),
+        locations = cells_body(
+          columns = Wybitność,
+          rows = Wybitność < 500
+        )) %>% 
+    data_color(
+    columns = Różnica,
+    colors = c('#FF9999','#FF3333'),
+    alpha = 0.8) %>% 
+  tab_style(
+    style = list(
+        cell_fill(color = "orange",alpha=0.9),
+        cell_text(weight = "bold",
+                  color = 'white')
+        ),
+        locations = cells_body(
+        columns = Nazwa,
+        rows = Wybitność < 500
+        )
+  ) %>% 
+  tab_style(
+        style = list(
+          cell_fill(color = "yellow",alpha=0.8)
+        ),
+        locations = cells_body(
+          columns = Nazwa,
+          rows = Wybitność >= 500
+        )) %>% 
+    tab_style(
+        style = list(
+          cell_text(color = 'black')
+        ),locations = cells_body(
+          columns = Różnica,
+        )
+        ) %>% 
+  tab_options(column_labels.background.color = "#ffedcc")
+
+tabela1
+```
+
+W tabeli oczywiście przeważają szczyty niewybitne, aczkolwiek największą różnicę wartości osiągną szczyt wybitny - Lhotse. Swoje miejsce uzyskał dzięki dużej wysokości klasyfikującej go na 4 w rankingu oraz małej wybitności jedynie o 110 większą ponad minimalną normę. Oprócz Lhotse w tabeli znalazły się jeszcze 3 inne szczyty wybitne.
+
+## Analiza wspinaczkek górskich
+
+Ostatnim fragmentem mojej pracy będzie analiza danych dotyczących wspinaczek górskich. Na pierwszym wykresie [@fig-4] przedstawiłem wykres słupkowy szczytów o największej liczbie ekspedycji przed 2004 rokiem.
+
+```{r}
+#| label: fig-4
+#| fig-cap: Najpopularniejsze szczyty
+tabela %>% 
+  mutate(lacznie = Successful+Unsuccessful) %>%
+  arrange(-lacznie) %>% 
+  head(15) %>% 
+  ggplot(aes(x = reorder(Name,-lacznie),lacznie)) +
+  geom_bar(stat= 'identity',fill = '#ff8533') +
+  geom_text(aes(label = lacznie), vjust = -1)+
+  scale_y_continuous(limits = c(0, 290))+
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "none")+
+  labs(x="Góra",
+       y="Suma")
+```
+
+Najpopularniejszym szczytem okazał się Mount Everest z 266 ekspedycjami, za nim Annapurna I z 185, a następnie Nanga Parbat z 119. Możemy zauważyć, że wyskość góry ma znaczny wpływ na jej popularność. Mimo że pozycje w rankingach nie odpowiadają sobie, to na omawianym wykresie tylko dwa szczyty nie są ośmiotysięcznikami - są to Annapurna IV oraz Kamet.
+
+Poniższe wykresy [@fig-5a] oraz [@fig-5b] przedstawiają odpowiednio liczbę udanych oraz nieudanych ekspedycji przed rokiem 2004.
+
+```{r}
+p1 <- tabela %>% 
+  arrange(-Successful) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(Name,-Successful),Successful)) +
+  geom_bar(stat= 'identity',fill = '#33ff33') +
+  geom_text(aes(label = Successful), vjust = -1)+
+  scale_y_continuous(limits = c(0, 160))+
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "none")+
+    labs(x="Góra",
+         y="Powodzenia")
+```
+
+```{r}
+p2 <- tabela %>% 
+  arrange(-Unsuccessful) %>% 
+  head(10) %>%  
+  ggplot(aes(x = reorder(Name,-Unsuccessful),Unsuccessful)) +
+  geom_bar(stat= 'identity',fill = '#3385ff') +
+  geom_text(aes(label = Unsuccessful), vjust = -1)+
+  scale_y_continuous(limits = c(0, 160))+
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = "none")+
+    labs(x="Góra",
+         y="Niepowodzenia")
+
+```
+
+::: {#fig-6 layout-ncol="2"}
+```{r}
+#| fig-cap: Najczęstrze udane wspinaczki
+#| label: fig-5a
+p1
+```
+
+```{r}
+#| fig-cap: Najczęstrze nieudane wspinaczki
+#| label: fig-5b
+p2
+```
+
+Wspinaczki
+:::
+
+Porównując wartości z [@fig-4] możemy dojść do wniosku, iż z tych szczytów najtrudniejszym do zdobycia okazuje się Nanga Parbat. Jako jedyny szczyt posiada więcej prób nieudanuch niż tych udanych. Nie wpływa to jednak na popularność szczytów wśród taterników co zostało przedstawione powyżej. Pozostałe wartości mają zbliżone wartości.
+
+Poniżej przedstawiłem histogram rozłożenia pierwszych zdobyć szczytów na lata (patrz [@fig-6]).
+
+```{r}
+#| fig-cap: Pierwsze zdobycia szczytów w latach
+#| label: fig-6
+plot3 <-  tabela %>% 
+  select(Lata=First) %>% 
+  ggplot(aes(x=Lata))+
+  geom_histogram(color='white',fill='brown',binwidth = 5)+
+  scale_x_continuous(n.breaks= 10)+
+  theme_light()+
+  labs(title = 'Histogram',
+       y = 'Liczba ekspedycji')
+
+ggplotly(plot3,tooltip = "Lata")%>% 
+  layout(hovermode = "x unified")
+```
+
+Pierwsze szczyty z bazy danych zdobyto w latach 30 dwudziestego wieku. Najwięcej szczytów zdobyto po raz pierwszy w latach 1955-1965. Później wartości zaczynają spadać z uwagi na ograniczoną liczbę szczytów. Ostatni szczyt - Saser Kangri II - zdobyto w 2011 roku. W zbiorze pozostały cztery szczyty, które nie zostały jeszcze zdobyte.
